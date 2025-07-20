@@ -96,14 +96,28 @@ def cancel_opposing_values(grouped_results):
     """
     Cancel out records with same empresa but opposite Valor amounts.
     Returns only non-cancelling records.
+    EXCLUDES records created by rule 2 (equal_values_division) from cancellation.
     """
     print(f"\n{'='*50}")
     print("APPLYING CANCELLATION LOGIC")
     print(f"{'='*50}")
     
-    # Group by empresa only (ignore nota for cancellation)
-    empresa_groups = {}
+    # Separate records by processing rule
+    rule2_records = []
+    other_records = []
+    
     for record in grouped_results:
+        if record.get('processing_rule') == 'equal_values_division':
+            rule2_records.append(record)
+        else:
+            other_records.append(record)
+    
+    print(f"Records from rule 2 (equal_values_division): {len(rule2_records)} - EXCLUDED from cancellation")
+    print(f"Records from other rules: {len(other_records)} - WILL BE processed for cancellation")
+    
+    # Group other records by empresa only (ignore nota for cancellation)
+    empresa_groups = {}
+    for record in other_records:
         empresa = record['empresa']
         if empresa not in empresa_groups:
             empresa_groups[empresa] = []
@@ -148,9 +162,14 @@ def cancel_opposing_values(grouped_results):
         if len(remaining_records) != len(records):
             print(f"  ✓ Cancelled {len(records) - len(remaining_records)} records")
     
+    # Add back all rule 2 records (they were excluded from cancellation)
+    final_results.extend(rule2_records)
+    
     print(f"\n✓ Cancellation logic completed")
-    print(f"✓ Records before cancellation: {len(grouped_results)}")
-    print(f"✓ Records after cancellation: {len(final_results)}")
+    print(f"✓ Records before cancellation: {len(other_records)} (rule 2 records excluded)")
+    print(f"✓ Records after cancellation: {len(final_results) - len(rule2_records)}")
+    print(f"✓ Rule 2 records added back: {len(rule2_records)}")
+    print(f"✓ Total final records: {len(final_results)}")
     
     return final_results
 
@@ -159,9 +178,10 @@ def apply_grouping_logic(all_records):
     """
     Apply the grouping logic before creating JSON:
     1. Filter by empresa and nota number
-    2. If all integer parts of soma values are equal, divide total by unit value to get number of rows
-    3. If values are different, sum them all together
-    4. Cancel opposing values for same empresa
+    2. If single record, keep as-is
+    3. If multiple records with all integer parts of soma values equal, divide total by unit value to get number of rows
+    4. If multiple records with different values, sum them all together
+    5. Cancel opposing values for same empresa
     """
     print(f"\n{'='*50}")
     print("APPLYING GROUPING LOGIC")
@@ -189,7 +209,22 @@ def apply_grouping_logic(all_records):
         print(f"  Soma values: {soma_values}")
         print(f"  Soma_notas values: {soma_notas_values}")
         
-        # For checking equality: integer part only
+        # NEW: Check if it's a single record group
+        if len(group) == 1:
+            print(f"  ✓ Rule 1 applied: Single record, keeping as-is")
+            single_record = group.iloc[0]
+            grouped_results.append({
+                'nota': nota,
+                'empresa': empresa,
+                'Valor': round(single_record['soma'], 2),
+                'Valor_Total': round(soma_notas_values[0] if soma_notas_values else single_record['soma'], 2),
+                'source': single_record.get('source', 'unknown'),
+                'sheet': single_record.get('sheet', 'unknown'),
+                'processing_rule': 'single_record'
+            })
+            continue
+        
+        # For checking equality: integer part only (multiple records)
         soma_values_int = [int(val) for val in soma_values]
         unique_soma_values = list(set(soma_values_int))
         
@@ -201,7 +236,7 @@ def apply_grouping_logic(all_records):
             
             if unit_value_int != 0:
                 num_rows = abs(total_value / unit_value_int)
-                print(f"  ✓ Rule 2 applied: All values equal (integer part only: {unit_value_int})")
+                print(f"  ✓ Rule 2 applied: Multiple records with all values equal (integer part only: {unit_value_int})")
                 print(f"  ✓ Total value: {total_value}, Unit value (int): {unit_value_int}")
                 print(f"  ✓ Number of rows to create: {num_rows}")
                 
@@ -224,7 +259,7 @@ def apply_grouping_logic(all_records):
             total_soma = sum(soma_values)
             total_soma_notas = soma_notas_values[0] if soma_notas_values else total_soma
             
-            print(f"  ✓ Rule 3 applied: Values are different")
+            print(f"  ✓ Rule 3 applied: Multiple records with different values")
             print(f"  ✓ Total soma: {total_soma}")
             print(f"  ✓ Total soma_notas: {total_soma_notas}")
             
