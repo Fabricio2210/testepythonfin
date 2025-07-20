@@ -92,12 +92,76 @@ def remove_company_duplicates(records):
     return filtered_records
 
 
+def cancel_opposing_values(grouped_results):
+    """
+    Cancel out records with same empresa but opposite Valor amounts.
+    Returns only non-cancelling records.
+    """
+    print(f"\n{'='*50}")
+    print("APPLYING CANCELLATION LOGIC")
+    print(f"{'='*50}")
+    
+    # Group by empresa only (ignore nota for cancellation)
+    empresa_groups = {}
+    for record in grouped_results:
+        empresa = record['empresa']
+        if empresa not in empresa_groups:
+            empresa_groups[empresa] = []
+        empresa_groups[empresa].append(record)
+    
+    final_results = []
+    
+    for empresa, records in empresa_groups.items():
+        print(f"\nProcessing cancellations for empresa: '{empresa}'")
+        print(f"  Records before cancellation: {len(records)}")
+        
+        # Create a list to track which records to keep
+        to_cancel = set()
+        
+        # Compare each record with every other record in the same empresa
+        for i, record1 in enumerate(records):
+            if i in to_cancel:
+                continue
+                
+            valor1 = record1['Valor']
+            
+            for j, record2 in enumerate(records[i+1:], i+1):
+                if j in to_cancel:
+                    continue
+                    
+                valor2 = record2['Valor']
+                
+                # Check if they cancel each other (opposite values)
+                if abs(valor1 + valor2) < 0.01:  # Allow for small floating point errors
+                    print(f"  ✓ Cancelling: {valor1} + {valor2} = {valor1 + valor2}")
+                    print(f"    Record 1: Nota {record1['nota']}, Valor {valor1}")
+                    print(f"    Record 2: Nota {record2['nota']}, Valor {valor2}")
+                    to_cancel.add(i)
+                    to_cancel.add(j)
+                    break  # Move to next record1
+        
+        # Keep only records that weren't cancelled
+        remaining_records = [record for i, record in enumerate(records) if i not in to_cancel]
+        final_results.extend(remaining_records)
+        
+        print(f"  Records after cancellation: {len(remaining_records)}")
+        if len(remaining_records) != len(records):
+            print(f"  ✓ Cancelled {len(records) - len(remaining_records)} records")
+    
+    print(f"\n✓ Cancellation logic completed")
+    print(f"✓ Records before cancellation: {len(grouped_results)}")
+    print(f"✓ Records after cancellation: {len(final_results)}")
+    
+    return final_results
+
+
 def apply_grouping_logic(all_records):
     """
     Apply the grouping logic before creating JSON:
     1. Filter by empresa and nota number
     2. If all integer parts of soma values are equal, divide total by unit value to get number of rows
     3. If values are different, sum them all together
+    4. Cancel opposing values for same empresa
     """
     print(f"\n{'='*50}")
     print("APPLYING GROUPING LOGIC")
@@ -187,8 +251,11 @@ def apply_grouping_logic(all_records):
                     'processing_rule': 'different_values_sum_discrepancy'
                 })
     
-    print(f"\n✓ Grouping logic applied successfully")
+    print(f"\n✓ Initial grouping logic applied")
     print(f"✓ Original records: {len(df_filtered)}")
     print(f"✓ Grouped results: {len(grouped_results)}")
     
-    return grouped_results
+    # Apply cancellation logic
+    final_results = cancel_opposing_values(grouped_results)
+    
+    return final_results
