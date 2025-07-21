@@ -75,14 +75,14 @@ def clean_nan_from_records(records):
     return cleaned_records
 
 
-def get_valor_empreendimento_total():
-    """Get the total project value from user input"""
-    while True:
-        try:
-            valor_str = input("Digite o valor total do empreendimento (R$): ")
-            valor_str = valor_str.replace("R$", "").replace(".", "").replace(",", ".").strip()
-            valor_empreendimento_total = float(valor_str)
-            print(f"Valor total do empreendimento: R$ {valor_empreendimento_total:,.2f}")
-            return valor_empreendimento_total
-        except ValueError:
-            print("Por favor, digite um valor numérico válido. Exemplo: 1000000.50 ou 1.000.000,50")
+# def get_valor_empreendimento_total():
+#     """Get the total project value from user input"""
+#     while True:
+#         try:
+#             valor_str = input("Digite o valor total do empreendimento (R$): ")
+#             valor_str = valor_str.replace("R$", "").replace(".", "").replace(",", ".").strip()
+#             valor_empreendimento_total = float(valor_str)
+#             print(f"Valor total do empreendimento: R$ {valor_empreendimento_total:,.2f}")
+#             return valor_empreendimento_total
+#         except ValueError:
+#             print("Por favor, digite um valor numérico válido. Exemplo: 1000000.50 ou 1.000.000,50")

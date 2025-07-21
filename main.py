@@ -1,4 +1,4 @@
-from utils.data_utils import get_valor_empreendimento_total
+# from utils.data_utils import get_valor_empreendimento_total
 from processors.file_processor import process_excel_folder, process_composicoes_folder
 from processors.excel_generator import create_merged_excel_files
 from utils.sharepoint import upload_excel_files_to_sharepoint
@@ -9,7 +9,7 @@ def main():
     print("INTEGRATED EXCEL AND COMPOSICOES PROCESSOR WITH GROUPING")
     print("="*60)
     
-    valor_empreendimento_total = get_valor_empreendimento_total()
+    # valor_empreendimento_total = get_valor_empreendimento_total()
     
     print(f"\n{'='*50}")
     print("PROCESSING EXCEL FOLDER")
@@ -24,14 +24,14 @@ def main():
     create_merged_excel_files(
         excel_data,
         composicoes_data,
-        valor_empreendimento_total,
+        #valor_empreendimento_total,
         output_folder="output"
     )
     
     print(f"\n{'='*60}")
     print("PROCESSING COMPLETE WITH GROUPING LOGIC!")
     print(f"💾 Output saved to folder: 'output/'")
-    print(f"Valor total do empreendimento: R$ {valor_empreendimento_total:,.2f}")
+    #print(f"Valor total do empreendimento: R$ {valor_empreendimento_total:,.2f}")
     print(f"{'='*60}")
     
     # Upload Excel files to SharePoint as the final step

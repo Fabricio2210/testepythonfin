@@ -47,7 +47,7 @@ def merge_file_records(file_stem, excel_data, composicoes_data):
     return file_records, excel_records_count, composicoes_records_count
 
 
-def create_merged_excel_files(excel_data, composicoes_data, valor_empreendimento_total, output_folder="output"):
+def create_merged_excel_files(excel_data, composicoes_data, output_folder="output"):
     """Create Excel files per file stem with grouped and deduplicated records"""
 
     os.makedirs(output_folder, exist_ok=True)
@@ -114,4 +114,4 @@ def create_merged_excel_files(excel_data, composicoes_data, valor_empreendimento
         total_grouped += len(cleaned_records)
 
     print(f"\n📊 Total grouped records saved across all files: {total_grouped}")
-    print(f"💰 Valor do empreendimento: R$ {valor_empreendimento_total:,.2f}")
+    #print(f"💰 Valor do empreendimento: R$ {valor_empreendimento_total:,.2f}")
