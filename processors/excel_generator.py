@@ -4,7 +4,7 @@ from processors.grouping_logic import apply_grouping_logic, deduplicate_by_valor
 
 
 def create_processing_summary(excel_data, composicoes_data, total_records, grouped_records_count):
-    """Create processing summary for merged data"""
+
     all_files = set(excel_data.keys()) | set(composicoes_data.keys())
     
     return {
@@ -19,12 +19,11 @@ def create_processing_summary(excel_data, composicoes_data, total_records, group
 
 
 def merge_file_records(file_stem, excel_data, composicoes_data):
-    """Merge records from excel and composicoes data for a single file"""
+
     file_records = []
     excel_records_count = 0
     composicoes_records_count = 0
     
-    # Add all records from excel data if exists
     if file_stem in excel_data:
         for sheet_name, sheet_data in excel_data[file_stem].items():
             if 'records' in sheet_data:
@@ -35,7 +34,6 @@ def merge_file_records(file_stem, excel_data, composicoes_data):
                     file_records.append(record_copy)
                     excel_records_count += 1
     
-    # Add all records from composicoes data if exists
     if file_stem in composicoes_data:
         for record in composicoes_data[file_stem]:
             record_copy = record.copy()
@@ -48,7 +46,6 @@ def merge_file_records(file_stem, excel_data, composicoes_data):
 
 
 def create_merged_excel_files(excel_data, composicoes_data, output_folder="output"):
-    """Create Excel files per file stem with grouped and deduplicated records"""
 
     os.makedirs(output_folder, exist_ok=True)
     all_files = set(excel_data.keys()) | set(composicoes_data.keys())
@@ -60,7 +57,7 @@ def create_merged_excel_files(excel_data, composicoes_data, output_folder="outpu
     total_grouped = 0
 
     for file_stem in all_files:
-        # Merge records
+
         file_records, excel_count, composicoes_count = merge_file_records(
             file_stem, excel_data, composicoes_data
         )
@@ -70,7 +67,6 @@ def create_merged_excel_files(excel_data, composicoes_data, output_folder="outpu
         grouped_records = [record for record in grouped_records if record.get("Valor_Total", 0) >= 0]
         grouped_records = deduplicate_by_valor(grouped_records)
         
-        # NOVA FUNCIONALIDADE: Remover duplicatas por empresa
         records_before_company_dedup = len(grouped_records)
         grouped_records = remove_company_duplicates(grouped_records)
         records_after_company_dedup = len(grouped_records)
@@ -83,10 +79,8 @@ def create_merged_excel_files(excel_data, composicoes_data, output_folder="outpu
             print(f"  ⚠ No grouped records for '{file_stem}', skipping Excel file.")
             continue
 
-        # Calculate total from Valor column (not Valor_Total)
         total_valor = round(sum(r.get('Valor', 0) for r in grouped_records), 2)
 
-        # Clean records: remove unnecessary fields
         cleaned_records = []
         for record in grouped_records:
             cleaned_record = {
@@ -95,16 +89,12 @@ def create_merged_excel_files(excel_data, composicoes_data, output_folder="outpu
             }
             cleaned_records.append(cleaned_record)
 
-        # Create DataFrame
         df_result = pd.DataFrame(cleaned_records)
-        
-        # Add total row only once at the end
+
         if not df_result.empty:
-            # Create a total row with empty values except for the total
             total_row = {col: '' for col in df_result.columns}
             total_row['total da planilha'] = total_valor
             
-            # Add the total row to the DataFrame
             df_result = pd.concat([df_result, pd.DataFrame([total_row])], ignore_index=True)
 
         output_path = os.path.join(output_folder, f"{file_stem}.xlsx")

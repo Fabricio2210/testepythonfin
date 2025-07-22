@@ -53,22 +53,18 @@ def extract_first_number_with_keywords(text):
 
 
 def extract_nota_from_parsed(complemento_parsed):
-    """Extract nota number from parsed complemento using various patterns"""
     if not isinstance(complemento_parsed, list):
         return None
 
-    # First, try to find NF bracket pattern in full text
     full_text = ' '.join(str(item) for item in complemento_parsed if isinstance(item, str))
     nf_bracket_result = extract_nf_bracket_pattern(full_text)
     if nf_bracket_result:
         return nf_bracket_result
 
-    # Then try each pattern on individual items
     for item in complemento_parsed:
         if not isinstance(item, str):
             continue
 
-        # Try all extraction patterns in order of priority
         patterns = [
             extract_nf_bracket_pattern,
             extract_date_number_pattern,

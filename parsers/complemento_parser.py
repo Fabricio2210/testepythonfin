@@ -4,70 +4,58 @@ from utils.regex_patterns import extract_nota_from_parsed
 
 
 def extract_initial_document_pattern(text):
-    """Extract initial document pattern from text"""
     pattern = r"^(Pg PGELETR\s+\d+|FATURA\s+\d+|Ref\. AV DÉB\s+\d+|AP/\d+|CONTRATO|Valor ref\. IRRF s/ NF\s*<\d+>|Valor ref\. IRRF s/ NF|Valor ref\. NF_REF[\s\-]*\d+|ISS retido conf\. NFES[\s\-]*\d+|Pis, Cofins e Csll sobre NFES[\s\-]*\d+|APÓLICE[\s\-]*\d+)\s*-?"
     match = re.search(pattern, text)
     return match.group(1).strip() if match else None
 
 
 def extract_date_document_pattern(text):
-    """Extract date document pattern from text"""
     match = re.search(r"^(\d{2}/\d{2}/\d{4}\s+\d+)\s*-", text)
     return match.group(1).strip() if match else None
 
 
 def extract_document_reference_pattern(text):
-    """Extract document reference pattern from text"""
     match = re.search(r"(NFES[\s\-]*\d+|NF_REF[\s\-]*\d+|NFELETR[\s\-]*\d+|APÓLICE[\s\-]*\d+|BOLETO[\s\-]?\d*|<\d+>)", text)
     return match.group(1).strip() if match else None
 
 
 def extract_company_name_pattern(text):
-    """Extract company name pattern from text"""
     pattern = r"([A-ZÀ-ÿ][A-ZÀ-ÿ\s\-&\.,]*?(?:\bLTDA\b\.?|S\/A|S\.A\.|ME\b|EPP\b|SOCIEDADE(?: INDIVIDUAL DE ADVOCACIA)?|COMPANHIA))"
     match = re.search(pattern, text, re.IGNORECASE)
     return match.group(1).strip(" -") if match else None
 
 
 def parse_complemento_text(text):
-    """Parse complemento text into structured parts"""
     if not isinstance(text, str):
         return []
 
     parts = []
     remaining_text = text
-
-    # Extract initial document pattern
     initial_doc = extract_initial_document_pattern(text)
     if initial_doc:
         parts.append(initial_doc)
         remaining_text = text[len(initial_doc):].strip()
 
-    # Extract date document pattern if no initial doc found
     if not initial_doc:
         date_doc = extract_date_document_pattern(text)
         if date_doc:
             parts.append(date_doc)
             remaining_text = text[len(date_doc):].strip()
 
-    # Extract document reference
     doc_ref = extract_document_reference_pattern(remaining_text)
     if doc_ref:
         parts.append(doc_ref)
         remaining_text = remaining_text.replace(doc_ref, "").strip(" -")
 
-    # Extract company name
     company_name = extract_company_name_pattern(remaining_text)
     if company_name:
         parts.append(company_name)
         remaining_text = remaining_text.replace(company_name, "").strip(" -")
 
-    # Add remaining text parts
     if remaining_text and remaining_text not in parts and len(remaining_text) > 3:
         remaining_parts = [part.strip() for part in remaining_text.split(" - ") if part.strip()]
         parts.extend(remaining_parts)
 
-    # Clean and deduplicate parts
     cleaned_parts = []
     seen = set()
     for part in parts:
@@ -93,13 +81,11 @@ def extract_empresa_from_parsed(parsed_parts):
         # Check segments from right to left (last segments first)
         for segment in reversed(segments):
             if any(keyword.upper() in segment.upper() for keyword in keywords):
-                return segment.strip()  # Remove leading/trailing whitespace
-    
+                return segment.strip()
     return None
 
 
 def calculate_soma_notas(df):
-    """Calculate soma_notas for each row based on matching nota AND empresa values"""
     if 'nota' not in df.columns or 'soma' not in df.columns:
         return [0.00] * len(df)
 
@@ -111,14 +97,12 @@ def calculate_soma_notas(df):
         if pd.isna(current_nota) or current_nota is None:
             soma_notas.append(0.00)
         else:
-            # Filter by both nota and empresa (if empresa exists)
             if 'empresa' in df.columns and not pd.isna(current_empresa):
                 matching_rows = df[
                     (df['nota'] == current_nota) & 
                     (df['empresa'] == current_empresa)
                 ]
             else:
-                # Fall back to nota only if empresa doesn't exist or is NaN
                 matching_rows = df[df['nota'] == current_nota]
             
             total_sum = matching_rows['soma'].sum()
@@ -128,7 +112,6 @@ def calculate_soma_notas(df):
 
 
 def parse_complemento_column(df):
-    """Parse the Complemento column and extract nota, empresa, and soma_notas"""
     if "Complemento" not in df.columns:
         return df
 

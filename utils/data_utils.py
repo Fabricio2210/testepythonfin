@@ -6,7 +6,6 @@ from datetime import datetime, date
 
 
 def has_nan_values(obj):
-    """Check if an object contains NaN values"""
     if isinstance(obj, dict):
         return any(has_nan_values(value) for value in obj.values())
     elif isinstance(obj, list):
@@ -19,7 +18,6 @@ def has_nan_values(obj):
 
 
 def convert_to_json_serializable(obj):
-    """Convert pandas/numpy objects to JSON serializable format"""
     if pd.isna(obj):
         return None
     elif isinstance(obj, (datetime, date)):
@@ -37,7 +35,6 @@ def convert_to_json_serializable(obj):
 
 
 def prepare_dataframe_for_json(df):
-    """Prepare DataFrame for JSON serialization by converting problematic data types"""
     df_copy = df.copy()
 
     for col in df_copy.columns:
@@ -50,7 +47,6 @@ def prepare_dataframe_for_json(df):
 
 
 def normalize_nota_field(record):
-    """Convert 'nota' to int if possible or remove if None"""
     if "nota" not in record:
         return record
 
@@ -64,7 +60,6 @@ def normalize_nota_field(record):
 
 
 def clean_nan_from_records(records):
-    """Remove records that contain NaN values or soma_notas equal to 0.0 or -0.0"""
     cleaned_records = []
     for record in records:
         if has_nan_values(record):

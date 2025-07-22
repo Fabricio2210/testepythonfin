@@ -31,10 +31,7 @@ def main():
     print(f"\n{'='*60}")
     print("PROCESSING COMPLETE WITH GROUPING LOGIC!")
     print(f"💾 Output saved to folder: 'output/'")
-    #print(f"Valor total do empreendimento: R$ {valor_empreendimento_total:,.2f}")
     print(f"{'='*60}")
-    
-    # Upload Excel files to SharePoint as the final step
     print(f"\n{'='*50}")
     print("UPLOADING TO SHAREPOINT")
     print(f"{'='*50}")
