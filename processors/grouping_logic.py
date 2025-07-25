@@ -1,6 +1,32 @@
 import pandas as pd
 
 
+def safe_float_conversion(value):
+    if pd.isna(value) or value is None:
+        return 0.0
+    
+    if isinstance(value, (int, float)):
+        return float(value)
+    
+    if isinstance(value, str):
+        cleaned_value = value.strip().replace(',', '').replace(' ', '')
+        
+        if not cleaned_value:
+            return 0.0
+        
+        try:
+            return float(cleaned_value)
+        except ValueError:
+            print(f"Warning: Could not convert '{value}' to float, returning 0.0")
+            return 0.0
+    
+    try:
+        return float(value)
+    except (ValueError, TypeError):
+        print(f"Warning: Could not convert '{value}' to float, returning 0.0")
+        return 0.0
+
+
 def deduplicate_by_valor(records):
     deduped = {}
     result = []
@@ -8,15 +34,17 @@ def deduplicate_by_valor(records):
     for record in records:
         nota = int(record.get("nota")) if record.get("nota") is not None else None
         empresa = record.get("empresa", "").strip().upper()
-        valor = record.get("Valor")
-        valor_total = record.get("Valor_Total")
+        valor = safe_float_conversion(record.get("Valor"))
+        valor_total = safe_float_conversion(record.get("Valor_Total"))
 
         if valor == valor_total:
             key = (nota, empresa, valor, valor_total)
             if key not in deduped or record.get("source") == "excel":
                 deduped[key] = {
                     **record,
-                    "nota": nota
+                    "nota": nota,
+                    "Valor": valor,
+                    "Valor_Total": valor_total
                 }
         else:
             result.append(record)
@@ -31,7 +59,7 @@ def remove_company_duplicates(records):
     groups = {}
     for record in records:
         valor_nota = record.get('valor_nota', '')
-        valor = record.get('Valor', 0)
+        valor = safe_float_conversion(record.get('Valor', 0))
         key = (valor_nota, valor)
         
         if key not in groups:
@@ -108,13 +136,13 @@ def cancel_opposing_values(grouped_results):
             if i in to_cancel:
                 continue
                 
-            valor1 = record1['Valor']
+            valor1 = safe_float_conversion(record1['Valor'])
             
             for j, record2 in enumerate(records[i+1:], i+1):
                 if j in to_cancel:
                     continue
                     
-                valor2 = record2['Valor']
+                valor2 = safe_float_conversion(record2['Valor'])
                 
                 if abs(valor1 + valor2) < 0.01:
                     print(f"  ✓ Cancelling: {valor1} + {valor2} = {valor1 + valor2}")
@@ -130,6 +158,7 @@ def cancel_opposing_values(grouped_results):
         print(f"  Records after cancellation: {len(remaining_records)}")
         if len(remaining_records) != len(records):
             print(f"  ✓ Cancelled {len(records) - len(remaining_records)} records")
+    
     final_results.extend(rule2_records)
     
     print(f"\n✓ Cancellation logic completed")
@@ -166,8 +195,9 @@ def apply_grouping_logic(all_records):
         print(f"\nProcessing group: Empresa='{empresa}', Nota='{nota}'")
         print(f"  Records in group: {len(group)}")
         
-        soma_values = group['soma'].dropna().tolist()
-        soma_notas_values = group['soma_notas'].dropna().tolist()
+        # Convert soma values to float safely
+        soma_values = [safe_float_conversion(val) for val in group['soma'].dropna().tolist()]
+        soma_notas_values = [safe_float_conversion(val) for val in group['soma_notas'].dropna().tolist()]
         
         if not soma_values:
             print(f"  ⚠ No valid soma values found, skipping group")
@@ -179,11 +209,14 @@ def apply_grouping_logic(all_records):
         if len(group) == 1:
             print(f"  ✓ Rule 1 applied: Single record, keeping as-is")
             single_record = group.iloc[0]
+            soma_value = safe_float_conversion(single_record['soma'])
+            soma_notas_value = safe_float_conversion(soma_notas_values[0] if soma_notas_values else single_record['soma'])
+            
             grouped_results.append({
                 'nota': nota,
                 'empresa': empresa,
-                'Valor': round(single_record['soma'], 2),
-                'Valor_Total': round(soma_notas_values[0] if soma_notas_values else single_record['soma'], 2),
+                'Valor': round(soma_value, 2),
+                'Valor_Total': round(soma_notas_value, 2),
                 'source': single_record.get('source', 'unknown'),
                 'sheet': single_record.get('sheet', 'unknown'),
                 'processing_rule': 'single_record'

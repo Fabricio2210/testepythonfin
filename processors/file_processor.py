@@ -186,7 +186,7 @@ def process_composicoes_folder(folder_path="composicoes"):
     return fornecedores_data
 
 
-def process_excel_folder(excel_folder="excel", fornecedores_data=None):
+def process_excel_folder(excel_folder="razoes", fornecedores_data=None):
 
     excel_files = []
     for ext in ['*.xlsx', '*.xls']:
